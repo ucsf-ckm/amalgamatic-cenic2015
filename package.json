@@ -1,0 +1,31 @@
+{
+  "name": "amalgamatic-cenic2015",
+  "description": "Amalgamatic plugin for the CENIC 2015 conference schedule",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ucsf-ckm/amalgamatic-cenic2015.git"
+  },
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node_modules/lab/bin/lab -t 100"
+  },
+  "engines": {
+    "node": ">=0.10.35"
+  },
+  "keywords": [
+    "amalgamatic-plugin"
+  ],
+  "devDependencies": {
+    "jshint": "^2.6.0",
+    "nock": "^0.59.1",
+    "precommit-hook": "^1.0.7",
+    "rewire": "^2.1.0"
+  },
+  "dependencies": {
+    "cheerio": "^0.18.0",
+    "code": "^1.3.0",
+    "lab": "^5.2.1",
+    "moment": "^2.8.3",
+    "util-extend": "^1.0.1"
+  }
+}
