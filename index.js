@@ -44,7 +44,9 @@ exports.search = function (query, callback) {
                 var rows = table.children('tr');
 
                 rows.each(function () {
-                    var times = $(this).children('td').first().text().trim();
+                    var rows = $(this).children('td');
+
+                    var times = rows.first().text().trim();
 
                     if (! timesRegExp.test(times)) {
                         return;
@@ -56,6 +58,11 @@ exports.search = function (query, callback) {
                     var start = moment(date + ' ' + startTime + ' ' + timeOffset, 'MMMM DD hh:mma ZZ').utcOffset(timeOffset).format();
                     var end = moment(date + ' ' + endTime + ' ' + timeOffset, 'MMMM DD hh:mma ZZ').utcOffset(timeOffset).format();
 
+                    var name = rows.eq(1).text().trim();
+                    var cutFrom = name.indexOf(' [ Abstract ]');
+                    if (cutFrom > 0) {
+                        name = name.substring(0, cutFrom);
+                    }
 
                     // var urlPath = table.first().children('a').first().attr('href') || '';
 
@@ -73,7 +80,7 @@ exports.search = function (query, callback) {
                     // });
 
                     result.push({
-                    //     name: name,
+                        name: name,
                     //     url: url.resolve(options.url, urlPath),
                     //     speakers: speakers,
                     //     room: room,

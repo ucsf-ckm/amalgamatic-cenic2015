@@ -31,20 +31,24 @@ describe('search()', function () {
 		done();
 	});
 
-	// it('should return results as expected', function (done) {
-	// 	nock('http://cenic2015.cenic.org')
-	// 		.get('/cenic-2015-conference-program-2/')
-	// 		.replyWithFile(200, __dirname + '/fixtures/schedule.html');
+	it('should return results as expected', function (done) {
+		nock('http://cenic2015.cenic.org')
+			.get('/cenic-2015-conference-program-2/')
+			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
 
-	// 	sched.search({}, function (err, result) {
+		sched.search({}, function (err, result) {
 
-	// 		expect(result.data).to.contain({
-	// 			//todo
-	// 		});
+			var needle = result.data.filter(function (value) {
+				return value.name === 'Building Your Own Federated Search' &&
+					value.start === '2015-03-09T14:20:00-07:00' &&
+					value.end === '2015-03-09T14:40:00-07:00';
+			});
 
-	// 		done();
-	// 	});
-	// });
+			expect(needle.length).to.equal(1);
+
+			done();
+		});
+	});
 
 	it('returns an error object if there was an HTTP error', function (done) {
 		sched.search({}, function (err, result) {
