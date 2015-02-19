@@ -108,6 +108,24 @@ describe('search()', function () {
 		});
 	});
 
+	it('should use the Abstract link', function (done) {
+		nock('http://cenic2015.cenic.org')
+			.get('/cenic-2015-conference-program-2/')
+			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
+
+
+		sched.search({}, function (err, result) {
+			expect(err).to.be.null();
+
+			var needle = result.data.filter(function (value) {
+				return value.url === 'http://cenic2015.cenic.org/cenic-2015-conference-program-2/abstract-building-your-own-federated-search/';
+			});
+
+			expect(needle.length).to.equal(1);
+			done();
+		});		
+	});
+
 	// it('should handle no speakers', function (done) {
 	// 	nock('http://cenic2015.cenic.org')
 	// 		.get('/cenic-2015-conference-program-2/')
