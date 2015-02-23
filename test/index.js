@@ -37,6 +37,9 @@ describe('search()', function () {
 			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
 
 		sched.search({}, function (err, result) {
+			if (err) {
+				return done(err);
+			}
 
 			var needle = result.data.filter(function (value) {
 				return value.name === 'Building Your Own Federated Search' &&
@@ -45,9 +48,9 @@ describe('search()', function () {
 			});
 
 			expect(needle.length).to.equal(1);
-
-			done();
 		});
+		done();
+
 	});
 
 	it('returns an error object if there was an HTTP error', function (done) {
@@ -64,10 +67,13 @@ describe('search()', function () {
 			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
 
 		sched.search({}, function (err, result) {
-			expect(err).to.be.null();
+			if (err) {
+				return done(err);
+			}
 			expect(result.url).to.equal('http://cenic2015.cenic.org/cenic-2015-conference-program-2/');
 			done();
 		});
+
 	});
 
 	it('should set withCredentials to false', function (done) {
@@ -120,8 +126,12 @@ describe('search()', function () {
 				return value.url === 'http://cenic2015.cenic.org/cenic-2015-conference-program-2/abstract-building-your-own-federated-search/';
 			});
 
-			expect(needle.length).to.equal(1);
-			done();
+			try {
+				expect(needle.length).to.equal(1);
+				done();
+			} catch (e) {
+				done(e);
+			}
 		});		
 	});
 
@@ -137,10 +147,39 @@ describe('search()', function () {
 				return value.url === 'http://cenic2015.cenic.org/cenic-2015-conference-program-2/abstract-using-shibboleth-to-provide-authenticated-access-for-csu-faculty-staff-and-students-on-the-sbcc-campus-wifi-network/';
 			});
 
-			expect(needle.length).to.equal(1);
-			done();
+			try {
+				expect(needle.length).to.equal(1);
+				done();
+			} catch (e) {
+				done(e);
+			}
 		});	
 
+	});
+
+	it('should provide a description', function (done) {
+		nock('http://cenic2015.cenic.org')
+			.get('/cenic-2015-conference-program-2/')
+			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
+
+		nock('http://cenic2015.cenic.org')
+			.get('/cenic-2015-conference-program-2/abstract-building-your-own-federated-search/')
+			.replyWithFile(200, __dirname + '/fixtures/abstract.html');
+
+		sched.search({}, function (err, result) {
+			expect(err).to.be.null();
+
+			var needle = result.data.filter(function (value) {
+				return value.description === 'Presenter(s): Richard Trott, UCSF\nYour higher education institution likely offers dozens of online resources for educators, students, researchers, and the public. And each of these online resources likely has its own search tool. But users can’t be expected to search in dozens of different interfaces to find what they’re looking for. A typical solution for this issue is federated search. As modern browsers advance, it becomes easier and easier to create your own federated search.\nThis presentation will cover common techniques and pitfalls in building a federated search. We will discuss what principles guided our decisions when implementing our own federated search. We will show tools we’ve built and our findings from building and using experimental prototypes.';
+			});
+
+			try {
+				expect(needle.length).to.equal(1);
+				done();
+			} catch (e) {
+				done(e);
+			}
+		});		
 	});
 
 	// it('should handle no speakers', function (done) {

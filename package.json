@@ -16,6 +16,7 @@
     "amalgamatic-plugin"
   ],
   "devDependencies": {
+    "code": "^1.3.0",
     "jshint": "^2.6.0",
     "nock": "^0.59.1",
     "precommit-hook": "^1.0.7",
@@ -26,6 +27,7 @@
     "code": "^1.3.0",
     "lab": "^5.2.1",
     "moment": "^2.8.3",
+    "promise": "^6.1.0",
     "util-extend": "^1.0.1"
   }
 }
