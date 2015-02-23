@@ -1,8 +1,11 @@
+/*global -Promise*/
+
 var cheerio = require('cheerio');
 var http = require('http');
 var url = require('url');
 var extend = require('util-extend');
 var moment = require('moment');
+var Promise = require('promise');
 
 var timeOffset = '-0700';  // Offset of conference timezone for human-readable timestamps/easier testing.
 
@@ -11,6 +14,22 @@ var timesRegExp = /[\d]{1,2}\:\d{2}[ap]\s*.\s*[\d]{1,2}\:\d{2}[ap]/;
 var options = {
     url: 'http://cenic2015.cenic.org/cenic-2015-conference-program-2/'
 };
+
+var request = Promise.denodeify(function (myOptions, callback) {
+    http.get(myOptions, function (res) {
+        var rawData = '';
+
+        res.on('data', function (chunk) {
+            rawData += chunk;
+        });
+
+        res.on('end', function () {
+            callback(null, rawData);
+        });
+    }).on('error', function (e) {
+        callback(e);
+    });
+});
 
 exports.setOptions = function (newOptions) {
     options = extend(options, newOptions);
@@ -22,82 +41,88 @@ exports.search = function (query, callback) {
     var myOptions = url.parse(options.url);
     myOptions.withCredentials = false;
 
-    http.get(myOptions, function (res) {
-        var rawData = '';
+    request(myOptions)
+    .then(function (data) {
+        var $ = cheerio.load(data);
+        var result = [];
 
-        res.on('data', function (chunk) {
-            rawData += chunk;
-        });
+        var rawResults = $('.entry-content h2');
 
-        res.on('end', function () {
-            var $ = cheerio.load(rawData);
-            var result = [];
+        rawResults.each(function () {
+            var date = $(this).text();
+            date = date.substring(date.indexOf('day, ')+5);
 
-            var rawResults = $('.entry-content h2');
+            var table = $(this).next();
 
-            rawResults.each(function () {
-                var date = $(this).text();
-                date = date.substring(date.indexOf('day, ')+5);
+            var rows = table.children('tr');
 
-                var table = $(this).next();
+            rows.each(function () {
+                var cells = $(this).children('td');
 
-                var rows = table.children('tr');
+                [0,2].forEach(function (index) {
+                    var times = cells.eq(index).text().trim();
 
-                rows.each(function () {
-                    var cells = $(this).children('td');
+                    if (! timesRegExp.test(times)) {
+                        return;
+                    }
 
-                    [0,2].forEach(function (index) {
-                        var times = cells.eq(index).text().trim();
+                    var startTime = times.substring(0,times.indexOf(' '));
+                    var endTime = times.substring(times.indexOf(' ')+3);
 
-                        if (! timesRegExp.test(times)) {
-                            return;
-                        }
+                    var start = moment(date + ' ' + startTime + ' ' + timeOffset, 'MMMM DD hh:mma ZZ').utcOffset(timeOffset).format();
+                    var end = moment(date + ' ' + endTime + ' ' + timeOffset, 'MMMM DD hh:mma ZZ').utcOffset(timeOffset).format();
 
-                        var startTime = times.substring(0,times.indexOf(' '));
-                        var endTime = times.substring(times.indexOf(' ')+3);
+                    var name = cells.eq(index+1).text().trim();
+                    var cutFrom = name.indexOf(' [ Abstract ]');
+                    if (cutFrom > 0) {
+                        name = name.substring(0, cutFrom);
+                    }
 
-                        var start = moment(date + ' ' + startTime + ' ' + timeOffset, 'MMMM DD hh:mma ZZ').utcOffset(timeOffset).format();
-                        var end = moment(date + ' ' + endTime + ' ' + timeOffset, 'MMMM DD hh:mma ZZ').utcOffset(timeOffset).format();
+                    var urlPath = cells.eq(index+1).children('a').eq(0).attr('href') || '';
 
-                        var name = cells.eq(index+1).text().trim();
-                        var cutFrom = name.indexOf(' [ Abstract ]');
-                        if (cutFrom > 0) {
-                            name = name.substring(0, cutFrom);
-                        }
+                    // var speakers = [];
+                    // var myMess;
+                    // table.each(function (index, element) {
+                    //     myMess = $(element).text();
+                    //     if (myMess.indexOf('Speaker: ') === 0) {
+                    //         speakers.push(myMess.substring(9));
+                    //     }
+                    // });
 
-                        var urlPath = cells.eq(index+1).children('a').eq(0).attr('href') || '';
-
-                        // var speakers = [];
-                        // var room = '';
-                        // var myMess;
-                        // table.each(function (index, element) {
-                        //     myMess = $(element).text();
-                        //     if (myMess.indexOf('Room: ') === 0) {
-                        //         room = myMess.substring(6);
-                        //     }
-                        //     if (myMess.indexOf('Speaker: ') === 0) {
-                        //         speakers.push(myMess.substring(9));
-                        //     }
-                        // });
-
-                        result.push({
-                            name: name,
-                            url: url.resolve(options.url, urlPath),
-                        //     speakers: speakers,
-                        //     room: room,
-                            start: start,
-                            end: end
-                        });
+                    result.push({
+                        name: name,
+                        url: url.resolve(options.url, urlPath),
+                    //     speakers: speakers,
+                        start: start,
+                        end: end
                     });
                 });
             });
-            
-            callback(null, {
-                data: result, 
-                url: options.url
-            });
         });
-    }).on('error', function (e) {
-        callback(e);
-    });
+
+        return result;
+    })
+    .then(function (result) {
+        return Promise.all(result.map(function (value) {
+            if (value.url !== options.url) {
+                return request(value.url)
+                    .then(function (data) {
+                        var $ = cheerio.load(data);
+                        value.description = $('.entry-content').text().trim();
+                        return value;
+                    })
+                    .catch(function () { return value; });
+            } else {
+                // ZALGO!!!!
+                return value;
+            }
+        }));
+    })
+    .then(function (result) {  
+        callback(null, {
+            data: result, 
+            url: options.url
+        });
+    })
+    .catch(callback);
 };
