@@ -113,7 +113,6 @@ describe('search()', function () {
 			.get('/cenic-2015-conference-program-2/')
 			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
 
-
 		sched.search({}, function (err, result) {
 			expect(err).to.be.null();
 
@@ -124,6 +123,24 @@ describe('search()', function () {
 			expect(needle.length).to.equal(1);
 			done();
 		});		
+	});
+
+	it('should find sessions that are in the same table row as other sessions', function (done) {
+		nock('http://cenic2015.cenic.org')
+			.get('/cenic-2015-conference-program-2/')
+			.replyWithFile(200, __dirname + '/fixtures/schedule.html');
+
+		sched.search({}, function (err, result) {
+			expect(err).to.be.null();
+
+			var needle = result.data.filter(function (value) {
+				return value.url === 'http://cenic2015.cenic.org/cenic-2015-conference-program-2/abstract-using-shibboleth-to-provide-authenticated-access-for-csu-faculty-staff-and-students-on-the-sbcc-campus-wifi-network/';
+			});
+
+			expect(needle.length).to.equal(1);
+			done();
+		});	
+
 	});
 
 	// it('should handle no speakers', function (done) {
